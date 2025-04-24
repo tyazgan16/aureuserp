@@ -1,32 +1,36 @@
 FROM php:8.1-fpm
 
+# Sisteme gerekli araç ve kütüphaneleri kur
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-dev \
     libfreetype6-dev \
-    locales \
-    zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
-    unzip \
-    git \
-    curl \
-    libonig-dev \
-    libxml2-dev \
     libzip-dev \
     zip \
-    libpq-dev \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+    unzip \
+    curl \
+    git \
+    libicu-dev \
+    libxml2-dev \
+    vim \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd pdo pdo_mysql zip intl
 
-# Composer
+# Composer'ı indir
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www
-
+# Projeyi container içine kopyala
 COPY . .
 
-RUN composer install
+# Laravel ortamı için cache'leri hazırla
+RUN composer install --optimize-autoloader --no-dev
+RUN php artisan config:clear
 RUN php artisan config:cache
+RUN php artisan route:cache
+RUN php artisan view:cache
 
-CMD php artisan serve --host=0.0.0.0 --port=8080
+# Uygulamanın kök dizinini tanımla
+WORKDIR /var/www/html
+
+CMD ["php-fpm"]
