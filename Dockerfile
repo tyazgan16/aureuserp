@@ -31,8 +31,8 @@ WORKDIR /var/www
 # Projeyi kopyala
 COPY . .
 
-# Laravel için composer kurulumunu yap
-RUN composer install --prefer-dist --no-dev --no-interaction --ignore-platform-reqs
+# Laravel için composer kurulumu yap
+RUN composer install --prefer-dist --no-dev --no-interaction --ignore-platform-reqs --no-scripts
 
 # Laravel önbellek işlemleri
 RUN php artisan config:clear && php artisan config:cache && php artisan route:cache
