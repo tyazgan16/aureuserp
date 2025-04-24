@@ -24,7 +24,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . .
 
 # Laravel ortamı için cache'leri hazırla
-RUN composer install --optimize-autoloader --no-dev
+RUN composer install --optimize-autoloader --no-dev --no-scripts
 RUN php artisan config:clear
 RUN php artisan config:cache
 RUN php artisan route:cache
