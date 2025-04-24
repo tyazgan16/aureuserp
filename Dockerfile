@@ -6,40 +6,32 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
-    libzip-dev \
+    locales \
     zip \
-    unzip \
-    curl \
-    git \
+    jpegoptim optipng pngquant gifsicle \
+    vim unzip git curl \
     libonig-dev \
     libxml2-dev \
-    libmcrypt-dev \
-    libicu-dev \
-    libpq-dev \
-    libxslt1-dev \
-    libmagickwand-dev --no-install-recommends
+    libzip-dev \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl gd
 
-# PHP uzantılarını yükle
-RUN docker-php-ext-install pdo pdo_mysql zip gd exif pcntl bcmath opcache intl
-
-# Composer'ı indir
+# Composer kurulumu
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Çalışma dizinini ayarla
+# Proje dosyalarını kopyala
+COPY . /var/www
+
 WORKDIR /var/www
 
-# Projeyi kopyala
-COPY . .
-
-# Laravel için composer kurulumu yap
-RUN composer install --prefer-dist --no-dev --no-interaction --ignore-platform-reqs --no-scripts
-
-# Laravel önbellek işlemleri
-RUN php artisan config:clear && php artisan config:cache && php artisan route:cache
-
-# Haklar
+# Gerekli PHP izinleri ve kullanıcı yetkileri
 RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage /var/www/bootstrap/cache
+    && chmod -R 755 /var/www/storage
 
-EXPOSE 9000
-CMD ["php-fpm"]
+# COMPOSER_ROOT_VERSION ve COMPOSER_ALLOW_SUPERUSER
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+# Composer ile bağımlılıkları yükle
+RUN composer install --prefer-dist --no-dev --no-interaction --ignore-platform-reqs
+
+# NOT: Artisan önbellek komutları kaldırıldı çünkü sınıf hatası var
+# RUN php artisan config:clear && php artisan config:cache && php artisan route:cache
