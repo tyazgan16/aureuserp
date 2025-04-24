@@ -1,36 +1,45 @@
 FROM php:8.2-fpm
 
-# Sisteme gerekli araç ve kütüphaneleri kur
+# Sistemi güncelle ve gerekli paketleri kur
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
-    libjpeg-dev \
+    libjpeg62-turbo-dev \
     libfreetype6-dev \
-    libzip-dev \
+    locales \
     zip \
-    unzip \
-    curl \
-    git \
-    libicu-dev \
-    libxml2-dev \
+    jpegoptim optipng pngquant gifsicle \
     vim \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql zip intl
+    unzip \
+    git \
+    curl \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev
 
-# Composer'ı indir
+# PHP yapılandırmaları
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+
+# Composer kurulum
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Projeyi container içine kopyala
-COPY . .
+# Proje dosyalarını konteynıra kopyala
+COPY . /var/www
 
-# Laravel ortamı için cache'leri hazırla
+# Çalışma dizini
+WORKDIR /var/www
+
+# Composer ile bağımlılıkları yükle (artisan cache komutları kaldırıldı)
 RUN composer install --optimize-autoloader --no-dev --no-scripts
-RUN php artisan config:clear
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
 
-# Uygulamanın kök dizinini tanımla
-WORKDIR /var/www/html
+# Autoload dosyalarını yeniden oluştur
+RUN composer dump-autoload
 
+# Laravel izin düzeltmesi (opsiyonel, kullanmak istersen açabilirsin)
+# RUN chown -R www-data:www-data /var/www
+
+# Laravel environment dosyasını kopyala (varsa)
+# COPY .env.example .env
+
+# Giriş noktası
 CMD ["php-fpm"]
