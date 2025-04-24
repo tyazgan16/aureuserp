@@ -1,45 +1,45 @@
 FROM php:8.2-fpm
 
-# Sistem paketlerini yükle
+# Sistem bağımlılıklarını yükle
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
-    libjpeg-dev \
+    libjpeg62-turbo-dev \
     libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
+    libzip-dev \
     zip \
     unzip \
-    git \
     curl \
-    libzip-dev \
-    libicu-dev \
-    libxslt-dev \
-    libjpeg62-turbo-dev \
+    git \
+    libonig-dev \
+    libxml2-dev \
     libmcrypt-dev \
+    libicu-dev \
+    libpq-dev \
+    libxslt1-dev \
     libmagickwand-dev --no-install-recommends
 
-# PHP uzantılarını kur
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
-    docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath intl gd
+# PHP uzantılarını yükle
+RUN docker-php-ext-install pdo pdo_mysql zip gd exif pcntl bcmath opcache intl
 
-# Composer yükle
+# Composer'ı indir
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Uygulama dosyalarını kopyala
-COPY . /var/www
+# Çalışma dizinini ayarla
 WORKDIR /var/www
 
-# Composer işlemlerini çalıştır
-RUN composer install --no-interaction --prefer-dist
+# Projeyi kopyala
+COPY . .
+
+# Laravel için composer kurulumunu yap
+RUN composer install --prefer-dist --no-dev --no-interaction --ignore-platform-reqs
 
 # Laravel önbellek işlemleri
-RUN php artisan config:clear \
- && php artisan cache:clear \
- && php artisan view:clear \
- && php artisan route:clear \
- && php artisan config:cache \
- && php artisan view:cache \
- && php artisan route:cache
+RUN php artisan config:clear && php artisan config:cache && php artisan route:cache
 
+# Haklar
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage /var/www/bootstrap/cache
+
+EXPOSE 9000
 CMD ["php-fpm"]
