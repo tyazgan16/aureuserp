@@ -1,39 +1,33 @@
 FROM php:8.2-fpm
 
-# Sistem paketleri
+# Sistem güncelle ve bağımlılıkları kur
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-dev \
     libfreetype6-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    libonig-dev \
+    zip unzip curl git \
+    libzip-dev libonig-dev \
     libxml2-dev \
-    libzip-dev \
-    vim
-
-# PHP Uzantıları
-RUN docker-php-ext-configure zip
-RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath gd
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libpq-dev \
+    && docker-php-ext-configure zip \
+    && docker-php-ext-install pdo pdo_mysql zip gd
 
 # Composer kurulumu
-COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Proje dosyalarını kopyala
-COPY . /var/www
 WORKDIR /var/www
 
-# Yetkilendirme
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www
+COPY . .
 
-# Composer kurulumları (script'leri atlıyoruz)
-RUN composer install --prefer-dist --no-dev --no-interaction --ignore-platform-reqs --no-scripts
+RUN composer install --optimize-autoloader --no-dev --no-interaction || true
 
-# Laravel key üretme (ilk çalıştırmada artisan ile yapılmalı)
-# RUN php artisan key:generate
+RUN php artisan config:cache || true
+RUN php artisan route:cache || true
 
-CMD php-fpm
+# Laravel uygulaması 80 portundan yayın yapacak
+EXPOSE 80
+
+CMD ["php", "-S", "0.0.0.0:80", "-t", "public"]
