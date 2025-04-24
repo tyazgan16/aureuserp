@@ -1,4 +1,4 @@
-FROM php:8.1-fpm
+FROM php:8.2-fpm
 
 # Sisteme gerekli araç ve kütüphaneleri kur
 RUN apt-get update && apt-get install -y \
